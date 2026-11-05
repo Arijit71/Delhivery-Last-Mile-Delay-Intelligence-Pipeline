@@ -1,6 +1,6 @@
 # Delhivery — Last-Mile Delay Intelligence
 
-A machine learning capstone project based on predicting delivery times, identifying delayed shipments and grouping logistics hubs according to their operating performance.
+A machine learning capstone project focused on predicting delivery times, identifying delayed shipments and grouping logistics hubs according to their operating performance using synthetic shipment data.
 
 **Program:** AI and ML Certification Program — E&ICT Academy, IIT Roorkee
 
@@ -13,22 +13,6 @@ Clone the repository:
 ```bash
 git clone https://github.com/<your-username>/delhivery-last-mile-delay-intelligence.git
 cd delhivery-last-mile-delay-intelligence
-```
-
-Create and activate a virtual environment.
-
-**Windows PowerShell:**
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-**Linux / macOS:**
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
 ```
 
 Install the required packages:
@@ -49,11 +33,11 @@ python package_model.py
 python predict_delay.py
 ```
 
-`package_model.py` regenerates `models/delay_model.pkl` using the final configuration from Part C. The committed pickle can be loaded reliably with the scikit-learn version pinned in `requirements.txt`. If the installed version differs, the grader will run `package_model.py` again instead of loading the committed pickle.
+`package_model.py` regenerates `models/delay_model.pkl` using the final configuration from Part C. The committed pickle loads reliably only with the scikit-learn version pinned in `requirements.txt`. If the installed version differs, the grader re-runs `package_model.py` instead of loading the committed pickle.
 
 ---
 
-# Data findings
+# Part A — Data Foundation and Delay Evidence
 
 ## Data cleaning
 
@@ -136,7 +120,7 @@ The declared value distribution has a higher mean than median. Applying the natu
 
 ---
 
-# Model results (regression)
+# Part B — Delivery-Hours Regression
 
 ## Data splitting and scaling
 
@@ -217,7 +201,7 @@ Gradient Boosting performs better in cross-validation, but Linear Regression is 
 
 ---
 
-# Model results (classification)
+# Part C — Delay Classification and Alert Threshold
 
 ## Stratified data splitting
 
@@ -280,7 +264,7 @@ Using seven features gives the highest validation F1, so `k=7` is used in the re
 
 The default Random Forest performs best on validation, so it is selected instead of the tuned models.
 
-Tuning did not improve validation F1 in this case. The searches use accuracy as their default scoring metric, whereas the final selection is based on F1. Also, the validation set contains only 180 shipments, so its results can be affected by a small number of predictions.
+Tuning did not improve validation F1 in this case. The searches use accuracy as their default scoring metric, whereas the final selection is based on F1. The validation set contains only 180 shipments, so its results can also be affected by a small number of predictions.
 
 ## Alert threshold selection
 
@@ -308,13 +292,13 @@ The selected Random Forest was evaluated once on the untouched test set using th
 | False Negatives | 10 |
 | True Negatives | 125 |
 
-Test recall is 0.7561 compared with validation recall of 0.8333, a decrease of 7.72 percentage points. The test set contains only 41 delayed shipments, so the result is based on a relatively small number of positive cases.
+Test recall is 0.7561 compared with validation recall of 0.8333, a decrease of 7.72 percentage points. The test set contains only 41 delayed shipments.
 
 ---
 
-# Operations recommendation
+# Part D — Hub Segmentation, Packaging and Operations Playbook
 
-## Hub segments
+## Hub segmentation
 
 The 24 hubs were grouped into three segments using K-Means on scaled delivery hours, delay rate, distance and number of stops.
 
@@ -349,7 +333,7 @@ These nine hubs have the highest operating delay rates and should receive greate
 | HUB15 | Kochi | 2 | Escalate | Watch |
 | HUB22 | Dehradun | 3 | Watch | Escalate |
 
-These four hubs do not follow the operating pattern suggested by their existing tier labels. The tier can still be used as a reference, but the segment should guide the operational playbook.
+These hubs do not follow the operating pattern suggested by their existing tier labels. The tier can still be used as a reference, but the segment should guide the operational playbook.
 
 ## Alert policy
 
@@ -373,7 +357,7 @@ The prediction script processed all 48 new shipments.
 
 Eight parcels were flagged, and six of them require hub-manager escalation.
 
-## Why K = 3?
+## Selection of K = 3
 
 | K | Across / Within Ratio | Cluster Sizes |
 |---:|---:|---|
@@ -382,7 +366,21 @@ Eight parcels were flagged, and six of them require hub-manager escalation.
 | 4 | 6.3047 | 8-7-5-4 |
 | 5 | 6.8866 | 8-7-4-3-2 |
 
-The separation ratio increases with K, but K=4 and K=5 produce clusters containing fewer than six hubs. K=3 gives three reasonably sized groups of 7, 8 and 9 hubs, which are more suitable for three separate operational playbooks.
+The separation ratio increases with K, but K=4 and K=5 produce clusters containing fewer than six hubs. K=3 gives three groups of 7, 8 and 9 hubs, making them more suitable for maintaining three separate operational playbooks.
+
+## Model packaging and prediction
+
+The final Random Forest classifier was saved as `models/delay_model.pkl`, along with its threshold, feature order and historical imputation values.
+
+The saved model was reloaded and checked against the original model using the 180 test shipments.
+
+| Check | Result |
+|---|---:|
+| Test rows scored | 180 |
+| Maximum probability difference | 0.0 |
+| Alert threshold | 0.5 |
+
+The prediction script uses the shared `clean_shipments()` and `build_features()` functions, along with the stored historical medians and feature order, to process new shipments.
 
 ---
 
@@ -392,17 +390,17 @@ The separation ratio increases with K, but K=4 and K=5 produce clusters containi
 
 | Characteristic | Implementation in this project |
 |---|---|
-| Accuracy | Regression and classification models were evaluated on separate test data using R², precision, recall and F1. |
+| Accuracy | Regression and classification models were evaluated on separate test data. |
 | Reliability | The saved model was reloaded successfully, with a maximum probability difference of 0.0. |
 | Reproducibility | Fixed random states, the provided data generator and pinned package versions are used. |
-| Performance (speed) | Prediction is performed in a batch using seven selected features and a 100-estimator Random Forest. Runtime benchmarking was not part of this project. |
-| Maintainability | Separate scripts handle data preparation, regression, classification, hub segmentation, model packaging and prediction. |
+| Performance (speed) | Batch prediction uses seven selected features and a 100-estimator Random Forest. No formal runtime benchmark was performed. |
+| Maintainability | Separate scripts handle data preparation, regression, classification, segmentation, packaging and prediction. |
 | Consistency | The same `clean_shipments()` and `build_features()` functions, historical medians and feature order are reused during prediction. |
 | Monitorability | `new_shipment_actions.csv` records shipment probabilities, flags, hub segments and recommended actions. |
 
 ## Monitoring
 
-The following are proposed starting thresholds for monitoring. They are operational suggestions, not results measured from the synthetic dataset.
+The following are proposed starting thresholds for operational monitoring, not measured results from the synthetic dataset.
 
 | Quantity | Trigger for review |
 |---|---|
@@ -410,13 +408,13 @@ The following are proposed starting thresholds for monitoring. They are operatio
 | Weekly flagged shipment share | Above 30% for two consecutive weeks. |
 | Recall on shipments with known outcomes | Below 0.70 over a rolling four-week period. |
 
-A trigger should lead to an investigation rather than an automatic model change.
+A trigger should lead to an investigation and model review.
 
 ## Retraining and data drift
 
 - **Retraining schedule:** Retrain monthly using recent labelled shipment data and evaluate the updated model on a later holdout set.
-- **Sale events:** The 15–28 September sale window should be compared with similar sale-event periods rather than ordinary weeks, since shipment volumes and delay patterns may be different.
-- **Data drift:** Changes in distance, number of stops, service-type distribution, parcel weights and hub-level delay rates should be monitored. Large changes in these distributions may indicate that current shipments are different from the data used to train the model.
+- **Sale events:** The 15–28 September sale window should be compared with similar sale-event periods rather than ordinary weeks, since shipment volumes and delay patterns may differ.
+- **Data drift:** Changes in distance, number of stops, service-type distribution, parcel weights and hub-level delay rates should be monitored. Significant changes in these distributions may indicate that current shipments differ from the training data.
 
 ---
 
